@@ -3,9 +3,9 @@ These are my personal notes from the **ASD Live Fire Cyberbitrange** event. This
 
 ---
 
-## Incident Investigation Steps
+## Malware Investigation
 
-### Step 1: Process & System Monitoring
+### Step 1: Process Monitoring
 #### Open Process Explorer by Sysinternals (preferred) or Task Manager
 ```powershell
 taskmgr
@@ -32,7 +32,7 @@ eventvwr
 
 ---
 
-### Step 2: Scheduled Tasks & Persistence
+### Step 2: Scheduled Tasks
 #### Open Task Scheduler (GUI)
 ```powershell
 taskschd
@@ -53,7 +53,7 @@ Unregister-ScheduledTask -TaskName "<SuspiciousTaskName>" -Confirm:$false
 
 ---
 
-### Step 3: Registry Startup Items
+### Step 3: Registry Startup
 #### Open Registry Editor (GUI)
 ```powershell
 regedit
@@ -69,7 +69,7 @@ reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run
 
 ---
 
-### Step 4: Network & External Communications
+### Step 4: Network Communications
 #### List Active Network Connections
 ```powershell
 netstat -bano
