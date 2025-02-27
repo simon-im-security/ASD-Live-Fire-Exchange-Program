@@ -1,4 +1,4 @@
-# ASD Live Fire Cyberbitrange
+# Australian Signals Directorate Live Fire Exchange Program
 These are my personal notes from the **ASD Live Fire Cyberbitrange** event. This document is not provided by or affiliated with the **Australian Signals Directorate (ASD)** or **CyberbitRange**.
 
 ---
