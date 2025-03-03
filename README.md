@@ -1,6 +1,6 @@
-# Australian Signals Directorate Live Fire Exchange Program
+# Australian Signals Directorate Live Fire Exchange Programme
 
-![ASD Program Logo](https://github.com/simon-im-security/ASD-Live-Fire-Exchange-Program/blob/main/Australian_Signals_Directorate_program_logo.png)
+![ASD Programme Logo](https://github.com/simon-im-security/ASD-Live-Fire-Exchange-Program/blob/main/Australian_Signals_Directorate_program_logo.png)
 
 These are my personal notes from the **ASD Live Fire Cyberbitrange** event. This document is not provided by or affiliated with the **Australian Signals Directorate (ASD)** or **CyberbitRange**.
 
@@ -14,7 +14,7 @@ These are my personal notes from the **ASD Live Fire Cyberbitrange** event. This
 - **Remove malware** by terminating its process and deleting the source file.
 - **Investigate network activity** to pinpoint Command and Control (C2) communication.
 - **Block the malicious actor** by implementing firewall rules, host-based security policies, or blacklisting the source.
-- **Mitigate persistence mechanisms** by analyzing scheduled tasks, registry entries, and startup programs.
+- **Mitigate persistence mechanisms** by analysing scheduled tasks, registry entries, and startup programmes.
 
 ---
 
@@ -65,7 +65,7 @@ Unregister-ScheduledTask -TaskName "<SuspiciousTaskName>" -Confirm:$false
 regedit
 ```
 
-#### Check Startup Programs (System & User Level)
+#### Check Startup Programmes (System & User Level)
 ```powershell
 reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Run
 reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run
