@@ -18,6 +18,28 @@ These are my personal notes from the **ASD Live Fire Cyberbitrange** event. This
 
 ---
 
+### Tools Available
+| Tool Name              | Functionality |
+|------------------------|--------------|
+| CyberChef v10.5.2     | Data analysis, encoding/decoding, and encryption/decryption tasks. |
+| DnSpy                 | .NET debugger and decompiler for analysing malicious .NET applications. |
+| Eric Zimmerman Tools  | Forensic tools for investigating Windows artifacts. |
+| Ghidra                | Reverse engineering tool for analysing compiled binaries. |
+| ILSpy                 | .NET decompiler to inspect and reverse engineer .NET assemblies. |
+| oletools-0.60.1       | Analysis tools for inspecting malicious Microsoft Office files. |
+| Pestudio              | Static malware analysis tool for inspecting PE files. |
+| Python Tools          | Various Python-based security and forensic utilities. |
+| SysinternalsSuite     | Collection of Windows system utilities for advanced monitoring and analysis. |
+| WinSCP               | Secure file transfer tool using SCP, SFTP, and FTP. |
+| Ay Base 64 Decoder.exe | Decodes Base64-encoded data, often used in malware obfuscation. |
+| IL Disassembler.exe   | Disassembles .NET IL (Intermediate Language) code for analysis. |
+| mTail.exe             | Real-time log file monitoring utility. |
+| newsid.exe            | Generates new SID (Security Identifier) for system forensic analysis. |
+| rktools.exe           | Windows Resource Kit tools for system administration and troubleshooting. |
+| Scriptomatic2.exe     | Automates Windows Management Instrumentation (WMI) scripting. |
+
+---
+
 ### Step 1: Process Monitoring
 #### Open Process Explorer by Sysinternals (preferred) or Task Manager
 ```powershell
@@ -85,4 +107,3 @@ netstat -bano
 #### Find Specific File Types (Excel, DOCX, PDF)
 ```powershell
 Get-ChildItem -Path C:\Users -Include *.xlsx,*.docx,*.pdf -File -Recurse -ErrorAction SilentlyContinue
-```
