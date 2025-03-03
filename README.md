@@ -1,34 +1,43 @@
 # Australian Signals Directorate Live Fire Exchange Program
+
+![ASD Program Logo](https://github.com/simon-im-security/ASD-Live-Fire-Exchange-Program/blob/main/Australian_Signals_Directorate_program_logo.png)
+
 These are my personal notes from the **ASD Live Fire Cyberbitrange** event. This document is not provided by or affiliated with the **Australian Signals Directorate (ASD)** or **CyberbitRange**.
 
 ---
 
-## Malware Investigation
+## <span style="color:navy; font-weight:bold;">Lifefire Bangalore - Malicious Detection</span>
+
+### **Scenario:** Command and Control (C2) detection via Splunk and McAfee, leveraging event logs for forensic analysis. The goal is to:
+- **Gather logs** using Event Viewer to track system activity and intrusion attempts.
+- **Identify malware** by cross-referencing process activity with known Indicators of Compromise (IOCs).
+- **Remove malware** by terminating its process and deleting the source file.
+- **Investigate network activity** to pinpoint Command and Control (C2) communication.
+- **Block the malicious actor** by implementing firewall rules, host-based security policies, or blacklisting the source.
+- **Mitigate persistence mechanisms** by analyzing scheduled tasks, registry entries, and startup programs.
+
+---
 
 ### Step 1: Process Monitoring
 #### Open Process Explorer by Sysinternals (preferred) or Task Manager
 ```powershell
 taskmgr
 ```
-*Opens Task Manager to review processes.*
 
 #### Find Suspicious Processes
 ```powershell
 tasklist | findstr /i "powershell cmd python wscript cscript mshta wmic rundll32 regsvr32 schtasks bitsadmin"
 ```
-*Lists running processes and filters for common suspicious executables.*
 
 #### Kill Suspicious Processes
 ```powershell
 taskkill /F /PID <PID>
 ```
-*Forcefully terminates a process by its PID.*
 
 #### Open Event Viewer (Security Logs)
 ```powershell
 eventvwr
 ```
-*Opens Event Viewer to review system and security logs.*
 
 ---
 
@@ -37,19 +46,16 @@ eventvwr
 ```powershell
 taskschd
 ```
-*Opens the Task Scheduler GUI to review scheduled tasks.*
 
 #### Detect Suspicious Scheduled Tasks (One-Liner)
 ```powershell
 Get-ScheduledTask | ? { $_.TaskPath -notmatch "^\\Microsoft\\Windows" -and ($_.Actions | % Execute | Out-String) -match "cmd|powershell|python|wscript|cscript|\.bat|\.vbs|\.js|\.py|mshta|rundll32|schtasks|bitsadmin" }
 ```
-*Finds scheduled tasks that execute potentially malicious scripts or binaries, excluding system tasks.*
 
 #### Remove a Suspicious Scheduled Task
 ```powershell
 Unregister-ScheduledTask -TaskName "<SuspiciousTaskName>" -Confirm:$false
 ```
-*Deletes a scheduled task without requiring confirmation.*
 
 ---
 
@@ -58,14 +64,12 @@ Unregister-ScheduledTask -TaskName "<SuspiciousTaskName>" -Confirm:$false
 ```powershell
 regedit
 ```
-*Opens the Windows Registry Editor to inspect startup entries.*
 
 #### Check Startup Programs (System & User Level)
 ```powershell
 reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Run
 reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run
 ```
-*Lists programs set to run at startup for both system-wide and user-specific configurations.*
 
 ---
 
@@ -74,7 +78,6 @@ reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run
 ```powershell
 netstat -bano
 ```
-*Displays active network connections, including the owning process ID (PID).*
 
 ---
 
@@ -83,4 +86,3 @@ netstat -bano
 ```powershell
 Get-ChildItem -Path C:\Users -Include *.xlsx,*.docx,*.pdf -File -Recurse -ErrorAction SilentlyContinue
 ```
-*Searches for specified file types recursively in user directories, ignoring errors from inaccessible folders.*
