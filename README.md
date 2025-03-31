@@ -1,9 +1,7 @@
-<!-- ASD Programme Logo -->
-<p align="center">
-  <img src="https://github.com/simon-im-security/ASD-Live-Fire-Exchange-Program/blob/main/Australian_Signals_Directorate_program_logo.png" alt="ASD Programme Logo" width="300">
-</p>
+<!-- ASD Programme Title -->
+<h1 align="center"><strong>ASD</strong></h1>
 
-<p><strong>These are my personal notes from the <em>ASD Live Fire Cyberbitrange</em> event. This document is not provided by or affiliated with the <em>Australian Signals Directorate (ASD)</em> or <em>CyberbitRange</em>.</strong></p>
+<p style="color: black;"><strong>These are my personal notes from the <em>ASD Live Fire Cyberbitrange</em> event. This document is not provided by or affiliated with the <em>Australian Signals Directorate (ASD)</em> or <em>CyberbitRange</em>.</strong></p>
 
 ---
 
