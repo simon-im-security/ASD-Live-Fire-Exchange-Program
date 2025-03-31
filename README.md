@@ -8,7 +8,16 @@
 ---
 
 <details>
-<summary><strong>🌐 LFE 1 Bangalore - Malicious Detection</strong></summary>## Scenario: Command and Control (C2) Detection
+<summary><strong>🌐 LFE 1 Bangalore - Malicious Detection</strong></summary>
+
+### 🛠 Topics Covered
+- Process and task investigation
+- Scheduled task review and removal
+- Registry autorun inspection
+- Network port activity check
+- Suspicious file hunting
+
+### 🔎 Scenario: Command and Control (C2) Detection
 
 - Gather logs using Event Viewer
 - Identify malware via IOCs
@@ -16,19 +25,6 @@
 - Investigate network activity (C2)
 - Block source and set firewall rules
 - Remove persistence (startup/registry/scheduled tasks)
-
-### 🔧 Tools Available
-
-| Tool Name             | Functionality               |
-|-----------------------|-----------------------------|
-| CyberChef             | Data analysis and decoding  |
-| DnSpy                 | .NET debugging/decompiling  |
-| Eric Zimmerman Tools | Windows forensics           |
-| Ghidra                | Reverse engineering         |
-| oletools              | Office macro analysis       |
-| Pestudio              | Static malware analysis     |
-| Sysinternals          | Advanced monitoring         |
-| WinSCP                | Secure file transfers       |
 
 ### 🧱 Step 1: Process Monitoring
 ```powershell
@@ -85,7 +81,7 @@ Get-ChildItem -Path C:\Users -Include *.xlsx,*.docx,*.pdf -File -Recurse -ErrorA
 - Network inspection with Wireshark
 - Basic SQL injection testing
 
-###### 🔎 Macro Analysis with `oletools`
+### 🔎 Macro Analysis with `oletools`
 
 `oletools` is a Python-based toolset for analysing Microsoft OLE2 files (e.g. Office documents). It helps detect malicious macros, extract metadata, and uncover indicators of compromise.
 
@@ -96,16 +92,11 @@ olevba -c suspicious.doc      # Extract macro code only
 olevba --decode suspicious.doc # Decode obfuscated content
 olevba --json suspicious.doc  # Output in JSON
 
-mraptor suspicious.doc        # Detect risknts). It helps detect malicious macros, extract metadata, and uncover indicators of compromise.
+mraptor suspicious.doc        # Detect risky macro patterns
+mraptor --json suspicious.doc
 
-#### 🔧 Common Tools & Flags:
-```bash
-olevba -a suspicious.doc      # Full analysis
-olevba -c suspicious.doc      # Extract macro code only
-olevba --decode suspicious.doc # Decode obfuscated content
-olevba --json suspicious.doc  # Output in JSON
-
-mraptor suspiciota --json suspicious.doc
+olemeta suspicious.doc        # Extract file metadata
+olemeta --json suspicious.doc
 
 oleid suspicious.doc          # File structure and risk features
 oleid --json suspicious.doc
