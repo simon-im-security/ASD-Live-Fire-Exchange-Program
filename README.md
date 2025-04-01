@@ -10,7 +10,10 @@ Description: GitHub-compatible Markdown (GHM) version using supported HTML like 
 
 <p><strong>These are my personal notes from the <em>ASD Live Fire Cyberbitrange</em> event. This document is not provided by or affiliated with the <em>Australian Signals Directorate (ASD)</em> or <em>CyberbitRange</em>.</strong></p>
 
+---
+
 <details>
+
 <summary><strong>🌐 LFE 1 Bangalore - Host-Based Threat Investigation</strong></summary>
 
 ### 🔎 Scenario: Command and Control (C2) Detection
@@ -212,3 +215,5 @@ SELECT * FROM users WHERE username = '' OR 1=1;--' AND password = '';
 ```
 
 </details>
+
+---
