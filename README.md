@@ -6,12 +6,12 @@ Description: GitHub-compatible Markdown (GHM) version using supported HTML like 
 -->
 
 <!-- ASD Programme Title -->
-<h1 align="center"><strong style="font-size: 4rem; letter-spacing: 4px; color: navy;">ASD</strong></h1>
+<h1 align="center"><strong style="font-size: 4.5rem; letter-spacing: 4px; color: navy;">Australian Signals Directorate - Live Fire Exchange Program</strong></h1>
 
 <p><strong>These are my personal notes from the <em>ASD Live Fire Cyberbitrange</em> event. This document is not provided by or affiliated with the <em>Australian Signals Directorate (ASD)</em> or <em>CyberbitRange</em>.</strong></p>
 
 <details>
-<summary><strong>🌐 LFE 1 Bangalore - Malicious Detection</strong></summary>
+<summary><strong>🌐 LFE 1 Bangalore - Host-Based Threat Investigation</strong></summary>
 
 ### 🔎 Scenario: Command and Control (C2) Detection
 
