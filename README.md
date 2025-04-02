@@ -124,6 +124,18 @@ Look for embedded downloaders or payload launchers (e.g., `iex`, `Start-Process`
 
 ---
 
+### 📂 Step 4.5: Identify Recently Created or Modified Files
+
+Scan the entire system for any files that may have been dropped, modified, or staged within the last 24 hours — this can help identify payloads, droppers, or secondary artefacts.
+
+```powershell
+Get-ChildItem -Path "C:\" -File -Recurse -ErrorAction SilentlyContinue |
+  Where-Object { $_.CreationTime -gt (Get-Date).AddHours(-24) -or $_.LastWriteTime -gt (Get-Date).AddHours(-24) } |
+  Select-Object FullName, Length, CreationTime, LastWriteTime
+```
+
+---
+
 ### 🗓 Step 5: Check Scheduled Tasks for Persistence
 
 List all scheduled tasks:
@@ -353,6 +365,18 @@ Decode with:
 Look for:
 - `Start-Process`, `Invoke-WebRequest`
 - Calls to run `agent.exe` or add registry tasks
+
+---
+
+### 📂 Step 4.5: Identify Recently Created or Modified Files
+
+Scan the entire system for any files that may have been dropped, modified, or staged within the last 24 hours — this can help identify payloads, droppers, or secondary artefacts.
+
+```powershell
+Get-ChildItem -Path "C:\" -File -Recurse -ErrorAction SilentlyContinue |
+  Where-Object { $_.CreationTime -gt (Get-Date).AddHours(-24) -or $_.LastWriteTime -gt (Get-Date).AddHours(-24) } |
+  Select-Object FullName, Length, CreationTime, LastWriteTime
+```
 
 ---
 
